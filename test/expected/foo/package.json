@@ -1,0 +1,9 @@
+{
+  "name": "foo",
+  "dependencies": {
+    "should-change": "0.0.8"
+  },
+  "devDependencies": {
+    "should-change-too": "0.0.8"
+  }
+}

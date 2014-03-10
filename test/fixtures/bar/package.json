@@ -1,0 +1,9 @@
+{
+    "name": "bar",
+    "dependencies": {
+        "all-right": "0.1.0"
+    },
+    "devDependencies": {
+        "pattern-dep": "0.42.1000"
+    }
+}

@@ -1,0 +1,9 @@
+{
+    "name": "bar-baz",
+    "dependencies": {
+        "pattern-dep": "0.1.0"
+    },
+    "devDependencies": {
+        "some-dev-dep": "0.42.1000"
+    }
+}

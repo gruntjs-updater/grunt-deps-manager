@@ -11,14 +11,23 @@
 module.exports = function(grunt) {
 
     grunt.registerMultiTask('deps_manager', 'Manage project dependencies version, installation, updates', function() {
+        var count = 0, deps = 0, devDeps = 0, ignoredDeps = 0, ignoredDevDeps = 0,
+            updated = {}, ignored = {};
+
         // Merge task-specific and/or target-specific options with these defaults.
         var options = this.options({
             version: grunt.file.readJSON('package.json').version,
-            pattern: ['.*']
+            pattern: ['.*'],
+            ignore: [],
+            logModules: false
         });
 
         if (!(options.pattern instanceof Array)) {
             options.pattern = [options.pattern];
+        }
+
+        if (!(options.ignore instanceof Array)) {
+            options.ignore = [options.ignore];
         }
 
         function matches(name, patterns) {
@@ -30,41 +39,63 @@ module.exports = function(grunt) {
             return false;
         }
 
+        function depsManaging(moduleName, list) {
+            for (var depName in list) {
+                if (matches(depName, options.pattern)) {
+                    var oldVers = list[depName];
+                    if (!matches(depName, options.ignore)) {
+                        // update dependency
+                        list[depName] = options.version;
+                        grunt.verbose.ok(depName+' '+oldVers['grey']+' >> '+list[depName]['green']);
+                        deps++;
+                        updated[depName] = updated[depName] || [];
+                        updated[depName].push(moduleName);
+                    } else {
+                        // ignore dependency
+                        grunt.verbose.error('Ignore: ' +depName+' '+oldVers['grey']+' >> '+list[depName]['green']);
+                        ignoredDeps++;
+                        ignored[depName] = ignored[depName] || [];
+                        ignored[depName].push(moduleName);
+                    }
+                }
+            }
+        }
+
         // Iterate over all specified file groups.
-        var count = 0, deps = 0, devDeps = 0;
         this.filesSrc.forEach(function(filepath) {
             if (filepath.indexOf('node_modules') === -1) {
                 // read package.json content
                 var json = grunt.file.readJSON(filepath);
 
                 grunt.verbose.subhead('Updating '+json.name['cyan']+' package.json');
-                var depName, oldVers;
-                for (depName in json.dependencies) {
-                    if (matches(depName, options.pattern)) {
-                        // update dependency
-                        oldVers = json.dependencies[depName];
-                        json.dependencies[depName] = options.version;
-                        grunt.verbose.ok(depName+' '+oldVers['grey']+' >> '+json.dependencies[depName]['green']);
-                        deps++;
-                    }
-                }
-
-                for (depName in json.devDependencies) {
-                    if (matches(depName, options.pattern)) {
-                        // update devDependency
-                        oldVers = json.devDependencies[depName];
-                        json.devDependencies[depName] = options.version;
-                        grunt.verbose.ok(depName+' '+oldVers['grey']+' >> '+json.devDependencies[depName]['green']);
-                        devDeps++;
-                    }
-                }
+                depsManaging(json.name, json.dependencies);
+                depsManaging(json.name, json.devDependencies);
 
                 grunt.file.write(filepath, JSON.stringify(json, null, 2));
                 count++;
             }
         });
-        grunt.log.ok(deps.toString()['cyan'] + ' dependencies updated to '+options.version.bold);
-        grunt.log.ok(devDeps.toString()['cyan'] + ' devDependencies updated to '+options.version.bold);
+
+        function prettyPrinter(o) {
+            var array = [];
+            for (var key in o) {
+                array.push(key + (options.logModules ? (' ['+o[key].join(', ')+']')['grey'] : ''));
+            }
+            return array.join(', ');
+        }
+
+        // end result
+        var updateCount = deps + devDeps;
+        var ignoredCount = ignoredDeps + ignoredDevDeps;
+        grunt.log.subhead('Updated to '+options.version);
+        grunt.log.oklns(updateCount.toString()['cyan']+' dependenc'+(updateCount > 1 ? 'ies': 'y')+' ('+deps+' deps, '+devDeps+' devDeps)');
+        grunt.log.writeln(prettyPrinter(updated));
+
+        if (ignoredCount > 0) {
+            grunt.log.subhead('Ignored:');
+            grunt.log.ok(ignoredCount.toString()['magenta']+' dependenc'+(ignoredCount > 1 ? 'ies': 'y')+' ('+ignoredDeps+' deps, '+ignoredDevDeps+' devDeps)');
+            grunt.log.writeln(prettyPrinter(ignored));
+        }
     });
 
 };

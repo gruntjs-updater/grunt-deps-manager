@@ -54,6 +54,14 @@ module.exports = function(grunt) {
                     pattern: ['pattern-.*', 'should-.*']
                 },
                 src: ['tmp/**/package.json']
+            },
+            ignore: {
+                options: {
+                    version: '0.0.52',
+                    ignore: 'some-dev-dep',
+                    logModules: true
+                },
+                src: ['tmp/**/package.json']
             }
         },
 
